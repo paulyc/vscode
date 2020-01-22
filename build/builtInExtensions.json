@@ -1,5 +1,14 @@
 [
 	{
+		"name": "be5invis.vscode-custom-css",
+		"version": "3.0.9"
+	},
+	{
+		"name": "webrender.synthwave-x-fluoromachine",
+		"version": "0.0.9",
+		"repo": "https://github.com/paulyc/synthwave-x-fluoromachine"
+	},
+	{
 		"name": "ms-vscode.node-debug",
 		"version": "1.42.0",
 		"repo": "https://github.com/Microsoft/vscode-node-debug",

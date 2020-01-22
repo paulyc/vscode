@@ -60,6 +60,7 @@ export class IntegrityServiceImpl implements IIntegrityService {
 
 	private _storage: IntegrityStorage;
 	private _isPurePromise: Promise<IntegrityTestResult>;
+	private _iWantCodeOnMyNuts: boolean;
 
 	constructor(
 		@INotificationService private readonly notificationService: INotificationService,
@@ -78,9 +79,13 @@ export class IntegrityServiceImpl implements IIntegrityService {
 
 			this._prompt();
 		});
+		this._iWantCodeOnMyNuts = false;
 	}
 
 	private _prompt(): void {
+		if (!this._iWantCodeOnMyNuts) {
+			return;
+		}
 		const storedData = this._storage.get();
 		if (storedData?.dontShowPrompt && storedData.commit === product.commit) {
 			return; // Do not prompt

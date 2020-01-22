@@ -1,0 +1,6 @@
+[submodule "extensions/synthwave-x-fluoromachine"]
+	path = extensions/synthwave-x-fluoromachine
+	url = https://github.com/webrender/synthwave-x-fluoromachine.git
+[submodule "extensions/vscode-custom-css"]
+	path = extensions/vscode-custom-css
+	url = https://github.com/be5invis/vscode-custom-css.git

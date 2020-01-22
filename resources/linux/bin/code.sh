@@ -11,7 +11,6 @@ if grep -qi Microsoft /proc/version && [ -z "$DONT_PROMPT_WSL_INSTALL" ]; then
 	[[ $YN == "n" || $YN == "N" || $YN == "" ]] && exit 1
 fi
 
-
 # If root, ensure that --user-data-dir or --file-write is specified
 if [ "$(id -u)" = "0" ]; then
 	for i in $@
@@ -21,8 +20,7 @@ if [ "$(id -u)" = "0" ]; then
 		fi
 	done
 	if [ -z $CAN_LAUNCH_AS_ROOT ]; then
-		echo "You are trying to start vscode as a super user which is not recommended. If you really want to, you must specify an alternate user data directory using the --user-data-dir argument." 1>&2
-		exit 1
+		echo "You are trying to start vscode as a super user which is not recommended. If you really want to, you should specify an alternate user data directory using the --user-data-dir argument." 1>&2
 	fi
 fi
 
