@@ -14,13 +14,13 @@ import { IFileDialogService } from 'vs/platform/dialogs/common/dialogs';
 import { IEditorModel, ITextEditorOptions } from 'vs/platform/editor/common/editor';
 import { IInstantiationService } from 'vs/platform/instantiation/common/instantiation';
 import { ILabelService } from 'vs/platform/label/common/label';
-import { ILifecycleService } from 'vs/platform/lifecycle/common/lifecycle';
-import { GroupIdentifier, IEditorInput, IRevertOptions, ISaveOptions, Verbosity, SaveContext } from 'vs/workbench/common/editor';
+import { GroupIdentifier, IEditorInput, IRevertOptions, ISaveOptions, SaveContext, Verbosity } from 'vs/workbench/common/editor';
 import { ICustomEditorModel, ICustomEditorService } from 'vs/workbench/contrib/customEditor/common/customEditor';
 import { FileEditorInput } from 'vs/workbench/contrib/files/common/editors/fileEditorInput';
-import { WebviewEditorOverlay } from 'vs/workbench/contrib/webview/browser/webview';
+import { WebviewEditorOverlay, IWebviewService } from 'vs/workbench/contrib/webview/browser/webview';
 import { IWebviewWorkbenchService, LazilyResolvedWebviewEditorInput } from 'vs/workbench/contrib/webview/browser/webviewWorkbenchService';
 import { IEditorService } from 'vs/workbench/services/editor/common/editorService';
+import { AutoSaveMode, IFilesConfigurationService } from 'vs/workbench/services/filesConfiguration/common/filesConfigurationService';
 
 export class CustomFileEditorInput extends LazilyResolvedWebviewEditorInput {
 
@@ -34,15 +34,16 @@ export class CustomFileEditorInput extends LazilyResolvedWebviewEditorInput {
 		viewType: string,
 		id: string,
 		webview: Lazy<WebviewEditorOverlay>,
-		@ILifecycleService lifecycleService: ILifecycleService,
+		@IWebviewService webviewService: IWebviewService,
 		@IWebviewWorkbenchService webviewWorkbenchService: IWebviewWorkbenchService,
 		@IInstantiationService private readonly instantiationService: IInstantiationService,
 		@ILabelService private readonly labelService: ILabelService,
 		@ICustomEditorService private readonly customEditorService: ICustomEditorService,
 		@IEditorService private readonly editorService: IEditorService,
 		@IFileDialogService private readonly fileDialogService: IFileDialogService,
+		@IFilesConfigurationService private readonly filesConfigurationService: IFilesConfigurationService
 	) {
-		super(id, viewType, '', webview, webviewWorkbenchService, lifecycleService);
+		super(id, viewType, '', webview, webviewService, webviewWorkbenchService);
 		this._editorResource = resource;
 	}
 
@@ -109,6 +110,18 @@ export class CustomFileEditorInput extends LazilyResolvedWebviewEditorInput {
 		return this._model ? this._model.isDirty() : false;
 	}
 
+	public isSaving(): boolean {
+		if (!this.isDirty()) {
+			return false; // the editor needs to be dirty for being saved
+		}
+
+		if (this.filesConfigurationService.getAutoSaveMode() === AutoSaveMode.AFTER_SHORT_DELAY) {
+			return true; // a short auto save is configured, treat this as being saved
+		}
+
+		return false;
+	}
+
 	public save(groupId: GroupIdentifier, options?: ISaveOptions): Promise<boolean> {
 		return this._model ? this._model.save(options) : Promise.resolve(false);
 	}
@@ -141,7 +154,7 @@ export class CustomFileEditorInput extends LazilyResolvedWebviewEditorInput {
 	}
 
 	public async resolve(): Promise<IEditorModel> {
-		this._model = await this.customEditorService.models.loadOrCreate(this.getResource(), this.viewType);
+		this._model = await this.customEditorService.models.resolve(this.getResource(), this.viewType);
 		this._register(this._model.onDidChangeDirty(() => this._onDidChangeDirty.fire()));
 		if (this.isDirty()) {
 			this._onDidChangeDirty.fire();
@@ -149,15 +162,12 @@ export class CustomFileEditorInput extends LazilyResolvedWebviewEditorInput {
 		return await super.resolve();
 	}
 
-	protected async promptForPath(resource: URI, defaultUri: URI, availableFileSystems?: readonly string[]): Promise<URI | undefined> {
+	private async promptForPath(resource: URI, defaultUri: URI, availableFileSystems?: string[]): Promise<URI | undefined> {
 
 		// Help user to find a name for the file by opening it first
 		await this.editorService.openEditor({ resource, options: { revealIfOpened: true, preserveFocus: true } });
 
-		return this.fileDialogService.pickFileToSave({
-			availableFileSystems,
-			defaultUri
-		});
+		return this.fileDialogService.pickFileToSave(defaultUri, availableFileSystems);
 	}
 
 	public handleMove(groupId: GroupIdentifier, uri: URI, options?: ITextEditorOptions): IEditorInput | undefined {
